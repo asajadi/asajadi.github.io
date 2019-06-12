@@ -5,124 +5,139 @@ date:   2019-06-04
 mathjax: true
 ---
 
-# Fast Personalized PageRank Python Implementation
+I needed a fast PageRank for [Wikisim](https://github.com/asajadi/wikisim) project. It had to be fast enough to run real time on relatively large graphs. NetworkX was the obvious library to use, however, it needed back and forth translation from my graph representation (which was the pretty standard csr matrix), to its internal graph data structure. These translations were slowing down the process. 
 
-I needed a fast PageRank for [Wikisim](https://github.com/asajadi/wikisim) project. It had to be fast enough to run real time on relatively large graphs. NetworkX was the obvious library to use, however, it needed back and forth translation from my graph representation (which was the pretty standard csr matrix), to its internal graph data structure. These translations were slowing down the process.
-
-I implemented two versions of the algorithm in Python, both inspired by the sparse fast solutions given in [**Cleve Moler**](https://en.wikipedia.org/wiki/Cleve_Moler)'s book, [*Experiments with MATLAB*](https://www.mathworks.com/content/dam/mathworks/mathworks-dot-com/moler/exm/chapters/pagerank.pdf). The power method is much faster with enough precision for our task.
+I implemented two versions of the algorithm in Python, both inspired by the sparse fast solutions given in [**Cleve Moler**](https://en.wikipedia.org/wiki/Cleve_Moler)'s book, [*Experiments with MATLAB*](https://www.mathworks.com/content/dam/mathworks/mathworks-dot-com/moler/exm/chapters/pagerank.pdf). The power method is much faster with enough precision for our task. 
 
 ### Personalized PageRank
-I modified the algorithm a little bit to be able to calculate **personalized PageRank** as well.
+I modified the algorithm a little bit to be able to calculate **personalized PageRank** as well. 
 
 
 ### Comparison with Popular Python Implementations: NetworkX and iGraph
-Both implementations (exact solution and *power method*) are much faster than their correspondent methods in NetworkX. The *power method* is also faster than the iGraph native implementation, which is also an eigenvector based solution. Benchmarking is done on a `ml.t3.2xlarge` SageMaker instance.
+Both implementations (exact solution and *power method*) are much faster than their correspondent methods in NetworkX. The *power method* is also faster than the iGraph native implementation, which is also an eigenvector based solution. Benchmarking is done on a `ml.t3.2xlarge` SageMaker instance. 
 
 ### What is the major drawback of NetworkX PageRank?
-I gave up using NetworkX for one simple reason: I had to calculate PageRank several times, and my internal representation of a graph was a simple sparse matrix. Every time I wanted to calculate PageRank I had to translate it to the graph representation of NetworkX, which was slow. My benchmarking shows that NetworkX  has a pretty fast implementation of PageRank ( `networkx.pagerank_numpy` and  '`networkx.pagerank_scipy`), but translating from its own graph data structure to a csr matrix before doing the actual calculations is exactly what exactly slows down the whole algorithm.
+I gave up using NetworkX for one simple reason: I had to calculate PageRank several times, and my internal representation of a graph was a simple sparse matrix. Every time I wanted to calculate PageRank I had to translate it to the graph representation of NetworkX, which was slow. My benchmarking shows that NetworkX  has a pretty fast implementation of PageRank ( `networkx.pagerank_numpy` and  '`networkx.pagerank_scipy`), but translating from its own graph data structure to a csr matrix before doing the actual calculations is exactly what exactly slows down the whole algorithm. 
 
 **Note**: I didn't count the time spent on `nx.from_scipy_sparse_matrix` (converting a csr matrix before passing it to NetworkX PageRank) in my benchmarking, But I could! Because that was another bottleneck for me, and for many other cases that one has a `csr` adjacency matrix.
 
 ### Python Implementation
-The python package is hosted at https://github.com/asajadi/fast-pagerank and you can find the installation guide in the [README.md](https://github.com/asajadi/fast-pagerank#usage) file. You also can find this jupyter notebook in [the notebook directory](https://github.com/asajadi/fast-pagerank/blob/master/notebooks/Fast-PageRank.ipynb).
+The python package is hosted at https://github.com/asajadi/fast-pagerank and you can find the installation guide in the [README.md](https://github.com/asajadi/fast-pagerank#usage) file. You also can find this jupyter notebook in [the notebook directory](https://github.com/asajadi/fast-pagerank/blob/master/notebooks/Fast-PageRank.ipynb). 
 
 
 ## Appendix
 
 ### What is Google PageRank Algorithm?
 PageRank is another link analysis algorithm primarily used to rank search engine results. It is defined as a process in which starting  from a
-random node, a random walker moves to a	random neighbour with probability $\alpha$  or jumps to a random vertex with the probability $1-\alpha$ . The PageRank values are the limiting probabilities of finding a walker on each
-node. In the original PageRank, the jump can be to any node with a uniform probability, however later in **Personalized PageRank**, this can be any custom probability distribution over the nodes.
+random node, a random walker moves to a	random neighbour with probability $$\alpha$$  or jumps to a random vertex with the probability $$1-\alpha$$ . The PageRank values are the limiting probabilities of finding a walker on each 
+node. In the original PageRank, the jump can be to any node with a uniform probability, however later in **Personalized PageRank**, this can be any custom probability distribution over the nodes. 
 
 ### How  Google PageRank is Calculated? [1, 2]
 
-Let $\mathbf{A}$ be the adjacency matrix ($\mathbf{A}_{ij}$ is the weight of the edge from node $i$ to node $j$) and $\vec{s}$ be the *teleporting probability*, that is $\vec{s}_i$ is the probability of jumping to node $i$. Probability of being at node $j$ at time $t+1$  can be determined by two factors:
-1. Sum over the out-neighbors $i$ of $j$ of the probability that the walk was at $i$ at time t, times the probability it moved from $i$ to $j$ in time $t+1$.
-2. Probability of teleporting from somewhere else in the graph to $j$.
+Let $$\mathbf{A}$$ be the adjacency matrix ($$\mathbf{A}_{ij}$$ is the weight of the edge from node $$i$$ to node $$j$$) and $$\vec{s}$$ be the *teleporting probability*, that is $$\vec{s}_i$$ is the probability of jumping to node $$i$$. Probability of being at node $$j$$ at time $$t+1$$  can be determined by two factors: 
+1. Sum over the out-neighbors $$i$$ of $$j$$ of the probability that the walk was at $$i$$ at time t, times the probability it moved from $$i$$ to $$j$$ in time $$t+1$$.
+2. Probability of teleporting from somewhere else in the graph to $$j$$.
 
 Formally:
 
+$$
 \begin{equation}
     \vec{p}_{t+1}(j)=\alpha\sum_{i:(i,j)\in E}\frac{A(i,j)}{d(i)}\vec{p}_t(i)+(1-\alpha)\vec{s}_j,
 \end{equation}
+$$
 
-where $d(i)$ is the out-degree of node $i$.
-To give a matrix form, we define $\mathbf{D}$ to be the diagonal matrix with the out-degree  of each node in $\mathbf{A}$ on
+where $$d(i)$$ is the out-degree of node $$i$$.
+To give a matrix form, we define $$\mathbf{D}$$ to be the diagonal matrix with the out-degree  of each node in $$\mathbf{A}$$ on 
 the diagonal. Then the PageRank
-vector, initialized with $\vec{s}$, can be obtained from the following recursion:
+vector, initialized with $$\vec{s}$$, can be obtained from the following recursion: 
 
+$$
 \begin{equation}
     \vec{pr}_{t+1}=\alpha \mathbf{A}^T \mathbf{D}^{-1}\vec{pr}_{t}+(1-\alpha)\vec{s}.
 \end{equation}
+$$
 
-There is a serious problem that we need to take care: $\mathbf{D}^{-1}$ is the inverse of $\mathbf{D}$, which for a diagonal matrix it will be simply inverting the elements on the diagonal. This will break if there are nodes with no out neighbors, a.k.a, *dangling nodes*.
+There is a serious problem that we need to take care: $$\mathbf{D}^{-1}$$ is the inverse of $$\mathbf{D}$$, which for a diagonal matrix it will be simply inverting the elements on the diagonal. This will break if there are nodes with no out neighbors, a.k.a, *dangling nodes*.
 What happens when you hit a page with no out link? You only have one option and that is to jump to a random page.
 
-To simulate this behavior we alter $\mathbf{A}$ by adding an edge from every dangling node to every other node $j$ with a weight of $\vec{s}_j$. In other words, we create $\mathbf{\bar{A}}$ by replacing each all zero row by $\vec{s}^T$. Formally, if we define $\vec{r}$ to be the vector of row-wise sum of the elements of $\mathbf{A}$, that is $\vec{r}_i=\sum_{j}A_{ij}$, then:
+To simulate this behavior we alter $$\mathbf{A}$$ by adding an edge from every dangling node to every other node $$j$$ with a weight of $$\vec{s}_j$$. In other words, we create $$\mathbf{\bar{A}}$$ by replacing each all zero row by $$\vec{s}^T$$. Formally, if we define $$\vec{r}$$ to be the vector of row-wise sum of the elements of $$\mathbf{A}$$, that is $$\vec{r}_i=\sum_{j}A_{ij}$$, then:
 
+$$
 \begin{align}
 \mathbf{\bar{A}}&=\mathbf{A}+\mathbf{B}\\
 \mbox{where}\\
 \mathbf{B}_{ij} &= \begin{cases}
-                        \vec{s}_j & \mbox{if } r_i=0 \\
+                        \vec{s}_j & \mbox{if } r_i=0 \\ 
                         0   & \mbox{else}
-                    \end{cases} \\  
+                    \end{cases} 
 \end{align}
+$$
 
-We need to re-define $\mathbf{D}$. In our new definition of $\mathbf{D}$, we ignore nodes with no out-neighbors (or in other words, replace $\frac{1}{0}$ by $0$). Similar to $\mathbf{D}$, we define $\mathbf{\bar{D}}$ to be the diagonal matrix of the out-degrees of $\mathbf{\bar{A}}$. So we can rewrite the recursion as:
+We need to re-define $$\mathbf{D}$$. In our new definition of $$\mathbf{D}$$, we ignore nodes with no out-neighbors (or in other words, replace $$\frac{1}{0}$$ by $$0$$). Similar to $$\mathbf{D}$$, we define $$\mathbf{\bar{D}}$$ to be the diagonal matrix of the out-degrees of $$\mathbf{\bar{A}}$$. So we can rewrite the recursion as:
 
+$$
 \begin{equation}
     \vec{pr}_{t+1}=\alpha \mathbf{\bar{A}}^T \mathbf{\bar{D}}^{-1}\vec{pr}_{t}+(1-\alpha)\vec{s}. \tag{I}\label{I}
 \end{equation}
+$$
 
-Now $\vec{pr}$, the stationary probabilities (i.e, when $\vec{pr}_{t+1}=\vec{pr}_t=\vec{pr}$) can be calculated by either of the following approaches:
+Now $$\vec{pr}$$, the stationary probabilities (i.e, when $$\vec{pr}_{t+1}=\vec{pr}_t=\vec{pr}$$) can be calculated by either of the following approaches:
 
 **1. Linear System Solving**
 
-We can solve Eq. $\eqref{I}$ and get:
+We can solve Eq. $$\eqref{I}$$ and get:
 
+$$
 \begin{equation}
     \vec{pr}=(I-\alpha\mathbf{\bar{A}}^T \mathbf{\bar{D}}^{-1})(1-\alpha)\vec{s}.
 \end{equation}
+$$
 
-And use a linear system solver to calculate $\vec{pr}$.
+And use a linear system solver to calculate $$\vec{pr}$$.
 
 **2. Power-Method**
 
-Basically, reiterating the Eq. $\eqref{I}$ until it converges.
+Basically, reiterating the Eq. $$\eqref{I}$$ until it converges. 
 
 
 ### How Fast Google PageRank Is Calculated? [3]
-To speed up, we need to take advantage of sparse matrix calculations.  The only problem with the current formulation is that $\mathbf{\bar{A}}$ has a lower sparsity than the original $\mathbf{A}$. However, we can move around pieces of the equation a little bit to skip forming this matrix. We know that:
+To speed up, we need to take advantage of sparse matrix calculations.  The only problem with the current formulation is that $$\mathbf{\bar{A}}$$ has a lower sparsity than the original $$\mathbf{A}$$. However, we can move around pieces of the equation a little bit to skip forming this matrix. We know that:
 
+$$
 \begin{align}
-\mathbf{\bar{A}}^T \mathbf{\bar{D}}
+\mathbf{\bar{A}}^T \mathbf{\bar{D}} 
                        &= (\mathbf{A}^T+\mathbf{B}^T)\mathbf{\bar{D}}\\
                        &= \mathbf{A}^T\mathbf{\bar{D}}^{-1}
                        +\mathbf{B}^T\mathbf{\bar{D}}^{-1}
 \end{align}
+$$
 
-For the first term, multiplying by this diagonal matrix scales each column and $\mathbf{\bar{D}}$ and $\mathbf{D}$ are different only in the elements whose correspondent columns were all zero in $\mathbf{A}^T$, so we can safely replace $\mathbf{\bar{D}}$ with $\mathbf{D}$. Also  $\mathbf{B}^T\mathbf{\bar{D}}^{-1}=\mathbf{B}^T$ because the non zero columns of $\mathbf{B}^T$ are all $\vec{s}$, which add up to $1$, and therefore their correspondent element on $\mathbf{D}$ will be $1$. Therefore,
+For the first term, multiplying by this diagonal matrix scales each column and $$\mathbf{\bar{D}}$$ and $$\mathbf{D}$$ are different only in the elements whose correspondent columns were all zero in $$\mathbf{A}^T$$, so we can safely replace $$\mathbf{\bar{D}}$$ with $$\mathbf{D}$$. Also  $$\mathbf{B}^T\mathbf{\bar{D}}^{-1}=\mathbf{B}^T$$ because the non zero columns of $$\mathbf{B}^T$$ are all $$\vec{s}$$, which add up to $$1$$, and therefore their correspondent element on $$\mathbf{D}$$ will be $$1$$. Therefore,
 
+$$
 \begin{align}
-\mathbf{\bar{A}}^T \mathbf{\bar{D}}
+\mathbf{\bar{A}}^T \mathbf{\bar{D}} 
                        &= \mathbf{A}^T\mathbf{D}^{-1}
                        +\mathbf{B}^T,
 \end{align}
+$$
 
 
-and using the above equation we can rewrite Eq. $\eqref{I}$ and get
+and using the above equation we can rewrite Eq. $$\eqref{I}$$ and get
 
+$$
 \begin{align}
     \vec{pr}_{t+1} &= \alpha \mathbf{A}^T\mathbf{D}^{-1}\vec{pr}_{t}
                     +\alpha\mathbf{B}^T\vec{pr}_{t}
                     +(1-\alpha)\vec{s}. \tag{II}\label{II}
 \end{align}
+$$
 
-This recursion has three multiplications, and the last one is a rather expensive one ($\mathbf{B}$ is a $n\times n$ matrix, therefore the whole multiplication will be $O(n^2)$).
+This recursion has three multiplications, and the last one is a rather expensive one ($$\mathbf{B}$$ is a $$n\times n$$ matrix, therefore the whole multiplication will be $$O(n^2)$$).
 
-Being a normalized vector, we know that $\vec{1}^T\vec{pr}_t=1$. We can multiply the last term of Eq. $\eqref{II}$ with $\vec{1}^T\vec{pr}_t$ and factor out $\vec{pr}$:
+Being a normalized vector, we know that $$\vec{1}^T\vec{pr}_t=1$$. We can multiply the last term of Eq. $$\eqref{II}$$ with $$\vec{1}^T\vec{pr}_t$$ and factor out $$\vec{pr}$$:
 
+$$
 \begin{align}
     \vec{pr} &=  \alpha \mathbf{A}^T\mathbf{D}^{-1}\vec{pr}_t
                   +\alpha\mathbf{B}^T\vec{pr}_t
@@ -131,73 +146,90 @@ Being a normalized vector, we know that $\vec{1}^T\vec{pr}_t=1$. We can multiply
                     (\alpha\mathbf{B}^T+
                     (1-\alpha)\vec{s}\vec{1}^T)\vec{pr}_t. \tag{III}\label{III}
 \end{align}
+$$
 
-Let $\mathbf{C}$ be $\alpha\mathbf{B}^T+(1-\alpha)\vec{s}\vec{1}^T$. Notice that $\vec{s}\vec{1}^T$ is a matrix with $\vec{s}$ as its columns, and substituting the definition of $\mathbf{B}$, the matrix $\mathbf{C}$ will be:
+Let $$\mathbf{C}$$ be $$\alpha\mathbf{B}^T+(1-\alpha)\vec{s}\vec{1}^T$$. Notice that $$\vec{s}\vec{1}^T$$ is a matrix with $$\vec{s}$$ as its columns, and substituting the definition of $$\mathbf{B}$$, the matrix $$\mathbf{C}$$ will be:
 
+$$
 \begin{align}
 \mathbf{C}_{ij} &= \begin{cases}
-                        \vec{s}_i & \mbox{if } r_j=0 \\
+                        \vec{s}_i & \mbox{if } r_j=0 \\ 
                         (1-\alpha)\vec{s}_i & \mbox{else}
-                \end{cases} \\  
+                    \end{cases}  
 \end{align}
+$$
 
-If we let $\vec{z}$ be:
+If we let $$\vec{z}$$ be:
 
+$$
 \begin{align}
 \vec{z}_i &= \begin{cases}
-                1 & \mbox{if } r_i=0 \\
+                1 & \mbox{if } r_i=0 \\ 
                 (1-\alpha) & \mbox{else}
-                \end{cases}  
+             \end{cases}  
 \end{align}
+$$
 
-then
+then 
 
+$$
 \begin{equation}
 \mathbf{C}=\vec{s}\vec{z}^T
 \end{equation}
+$$
 
-So by replacing  ($\alpha\mathbf{B}^T+(1-\alpha)\vec{s}\vec{1}^T$) in Eq. $\eqref{III}$ with $\vec{s}\vec{z}^T$, we'll get:
+So by replacing  ($$\alpha\mathbf{B}^T+(1-\alpha)\vec{s}\vec{1}^T$$) in Eq. $$\eqref{III}$$ with $$\vec{s}\vec{z}^T$$, we'll get:
 
+$$
 \begin{align}
     \vec{pr}_{t+1} &= \alpha \mathbf{A}^T\mathbf{D}^{-1}\vec{pr}_{t}+(\vec{s}\vec{z}^T)\vec{pr}_{t}. \tag{IV}\label{IV}  
 \end{align}
+$$
 
 How does this help to improve the calculations? We'll see:
 
 **1. Solving a Linear System**
 
-Similar to before, we can solve Eq. $\eqref{IV}$ and get:
+Similar to before, we can solve Eq. $$\eqref{IV}$$ and get:
 
+$$
 \begin{equation}
     \vec{pr}=(I-\alpha \mathbf{A}^T\mathbf{D}^{-1})^{-1}(\vec{s}\vec{z}^T)\vec{pr}.
 \end{equation}
+$$
 
-Being able to re-parenthesize, $\vec{z}^T\vec{p}$ is just a number, so we can ignore it and renormalize $\vec{pr}$ at the end, and solve:
+Being able to re-parenthesize, $$\vec{z}^T\vec{p}$$ is just a number, so we can ignore it and renormalize $$\vec{pr}$$ at the end, and solve:
 
+$$
 \begin{equation}
     \vec{pr}=(I-\alpha \mathbf{A}^T\mathbf{D}^{-1})^{-1}\vec{s}.
 \end{equation}
+$$
 
-We almost have the same linear equation system that we had before, except for one big improvement, we replaced the less-sparse $\mathbf{\bar{A}}$ with $\mathbf{A}$.
+We almost have the same linear equation system that we had before, except for one big improvement, we replaced the less-sparse $$\mathbf{\bar{A}}$$ with $$\mathbf{A}$$.
 
 **2. Power Method**
 
-We can apply one last smart modification to Eq. $\eqref{IV}$: if we change the parenthesizing of the last multiplication ([remember the famous dynamic programming algorithm](https://en.wikipedia.org/wiki/Matrix_chain_multiplication)?), and also define $\mathbf{W}=\alpha\mathbf{A}^T\mathbf{D}^{-1}$, we will have:
+We can apply one last smart modification to Eq. $$\eqref{IV}$$: if we change the parenthesizing of the last multiplication ([remember the famous dynamic programming algorithm](https://en.wikipedia.org/wiki/Matrix_chain_multiplication)?), and also define $$\mathbf{W}=\alpha\mathbf{A}^T\mathbf{D}^{-1}$$, we will have:
 
+$$
 \begin{equation}
 \vec{pr}_{t+1} = \mathbf{W}\vec{pr}_{t}+
                 \vec{s}(\vec{z}^T\vec{pr}_{t})
 \end{equation}
+$$
 
-Therefore, the complexity decreased to $O(n)$, and the whole recursion will be $O(n)\times \#iterations$. The rate of convergence is another thing, which we ignore here, and depends on the value of the second eigenvalue ($\lambda_2$) of the modified transition matrix ($\mathbf{T}$), which is defined as:
+Therefore, the complexity decreased to $$O(n)$$, and the whole recursion will be $$O(n)\times \#iterations$$. The rate of convergence is another thing, which we ignore here, and depends on the value of the second eigenvalue ($$\lambda_2$$) of the modified transition matrix ($$\mathbf{T}$$), which is defined as:
+$$
 \begin{equation}
 \mathbf{T}=\alpha\mathbf{A}^T\mathbf{D}^{-1}+\vec{s}\vec{z}^T
 \end{equation}
+$$
 
 
 ## References
 
-[1] [Daniel A. Spielman](https://en.wikipedia.org/wiki/Daniel_Spielman), Graphs and Networks Lecture Notes, [Lecture 11: Cutting Graphs, Personal PageRank and Spilling Paint](http://www.cs.yale.edu/homes/spielman/462/lect11-13.pdf), 2013.
+[1] [Daniel A. Spielman](https://en.wikipedia.org/wiki/Daniel_Spielman), Graphs and Networks Lecture Notes, [Lecture 11: Cutting Graphs, Personal PageRank and Spilling Paint](http://www.cs.yale.edu/homes/spielman/462/lect11-13.pdf), 2013. 
 
 [2] [Daniel A. Spielman](https://en.wikipedia.org/wiki/Daniel_Spielman), Spectral Graph Theory Lecture Notes, [Lecture 10: Random Walks on Graphs](http://www.cs.yale.edu/homes/spielman/561/lect10-18.pdf), 2018
 
@@ -252,8 +284,8 @@ def pagerank(A, p=0.85,
     PageRank Scores for the nodes
 
     """
-    # In Moler's algorithm, $A_{ij}$ represents the existences of an edge
-    # from node $j$ to $i$, while we have assumed the opposite!
+    # In Moler's algorithm, $$A_{ij}$$ represents the existences of an edge
+    # from node $$j$$ to $$i$$, while we have assumed the opposite!
     if reverse:
         A = A.T
 
@@ -295,8 +327,8 @@ def pagerank_power(A, p=0.85, max_iter=100,
     PageRank Scores for the nodes
 
     """
-    # In Moler's algorithm, $G_{ij}$ represents the existences of an edge
-    # from node $j$ to $i$, while we have assumed the opposite!
+    # In Moler's algorithm, $$G_{ij}$$ represents the existences of an edge
+    # from node $$j$$ to $$i$$, while we have assumed the opposite!
     if reverse:
         A = A.T
 
@@ -524,17 +556,17 @@ if __name__ == '__main__':
     ..........
     ----------------------------------------------------------------------
     Ran 10 tests in 0.020s
-
+    
     OK
 
 
 # Benchmarking
 
-To avoid the clutter, we only visualize the fastest method from each implementation, that is:
+To avoid the clutter, we only visualize the fastest method from each implementation, that is: 
 
 - `networkx.pagerank_scipy`
 - Latest implementation of  `iGraph.personalized_pagerank` (PRPACK)
-- Our `pagerank_power`
+- Our `pagerank_power` 
 
 
 
@@ -554,7 +586,7 @@ from fast_pagerank.pagerank import pagerank
 from fast_pagerank.pagerank import pagerank_power
 
 # def print_and_flush(args):
-
+    
 #     sys.stdout.flush()
 def get_random_graph(
         min_size=20,
@@ -719,7 +751,7 @@ plt.plot(comparison_table['Edges'], comparison_table['iGraph'],
 plt.plot(comparison_table['Edges'], comparison_table['(fast) pagerank'],
          '*-', ms=8, lw=2, alpha=0.7, color='red',
          label='fast_pagerank.pagerank')
-
+                          
 plt.plot(comparison_table['Edges'], comparison_table['(fast) pagerank_power'],
          '^-', ms=8, lw=2, alpha=0.7, color='green',
          label='fast_pagerank.pagerank_power')
@@ -1271,4 +1303,5 @@ plt.show()
 
 
 
-![png](output_9_1.png)
+![png](Fast-PageRank_files/Fast-PageRank_9_1.png)
+
