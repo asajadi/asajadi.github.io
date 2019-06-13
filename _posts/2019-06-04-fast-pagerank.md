@@ -5,36 +5,36 @@ date:   2019-06-04
 mathjax: true
 ---
 
-I needed a fast PageRank for [Wikisim](https://github.com/asajadi/wikisim) project. It had to be fast enough to run real time on relatively large graphs. NetworkX was the obvious library to use, however, it needed back and forth translation from my graph representation (which was the pretty standard csr matrix), to its internal graph data structure. These translations were slowing down the process. 
+I needed a fast PageRank for [Wikisim](https://github.com/asajadi/wikisim) project. It had to be fast enough to run real time on relatively large graphs. NetworkX was the obvious library to use, however, it needed back and forth translation from my graph representation (which was the pretty standard csr matrix), to its internal graph data structure. These translations were slowing down the process.
 
-I implemented two versions of the algorithm in Python, both inspired by the sparse fast solutions given in [**Cleve Moler**](https://en.wikipedia.org/wiki/Cleve_Moler)'s book, [*Experiments with MATLAB*](https://www.mathworks.com/content/dam/mathworks/mathworks-dot-com/moler/exm/chapters/pagerank.pdf). The power method is much faster with enough precision for our task. 
+I implemented two versions of the algorithm in Python, both inspired by the sparse fast solutions given in [**Cleve Moler**](https://en.wikipedia.org/wiki/Cleve_Moler)'s book, [*Experiments with MATLAB*](https://www.mathworks.com/content/dam/mathworks/mathworks-dot-com/moler/exm/chapters/pagerank.pdf). The power method is much faster with enough precision for our task.
 
 ### Personalized PageRank
-I modified the algorithm a little bit to be able to calculate **personalized PageRank** as well. 
+I modified the algorithm a little bit to be able to calculate **personalized PageRank** as well.
 
 
 ### Comparison with Popular Python Implementations: NetworkX and iGraph
-Both implementations (exact solution and *power method*) are much faster than their correspondent methods in NetworkX. The *power method* is also faster than the iGraph native implementation, which is also an eigenvector based solution. Benchmarking is done on a `ml.t3.2xlarge` SageMaker instance. 
+Both implementations (exact solution and *power method*) are much faster than their correspondent methods in NetworkX. The *power method* is also faster than the iGraph native implementation, which is also an eigenvector based solution. Benchmarking is done on a `ml.t3.2xlarge` SageMaker instance.
 
 ### What is the major drawback of NetworkX PageRank?
-I gave up using NetworkX for one simple reason: I had to calculate PageRank several times, and my internal representation of a graph was a simple sparse matrix. Every time I wanted to calculate PageRank I had to translate it to the graph representation of NetworkX, which was slow. My benchmarking shows that NetworkX  has a pretty fast implementation of PageRank ( `networkx.pagerank_numpy` and  '`networkx.pagerank_scipy`), but translating from its own graph data structure to a csr matrix before doing the actual calculations is exactly what exactly slows down the whole algorithm. 
+I gave up using NetworkX for one simple reason: I had to calculate PageRank several times, and my internal representation of a graph was a simple sparse matrix. Every time I wanted to calculate PageRank I had to translate it to the graph representation of NetworkX, which was slow. My benchmarking shows that NetworkX  has a pretty fast implementation of PageRank ( `networkx.pagerank_numpy` and  '`networkx.pagerank_scipy`), but translating from its own graph data structure to a csr matrix before doing the actual calculations is exactly what exactly slows down the whole algorithm.
 
 **Note**: I didn't count the time spent on `nx.from_scipy_sparse_matrix` (converting a csr matrix before passing it to NetworkX PageRank) in my benchmarking, But I could! Because that was another bottleneck for me, and for many other cases that one has a `csr` adjacency matrix.
 
 ### Python Implementation
-The python package is hosted at https://github.com/asajadi/fast-pagerank and you can find the installation guide in the [README.md](https://github.com/asajadi/fast-pagerank#usage) file. You also can find this jupyter notebook in [the notebook directory](https://github.com/asajadi/fast-pagerank/blob/master/notebooks/Fast-PageRank.ipynb). 
+The python package is hosted at https://github.com/asajadi/fast-pagerank and you can find the installation guide in the [README.md](https://github.com/asajadi/fast-pagerank#usage) file. You also can find this jupyter notebook in [the notebook directory](https://github.com/asajadi/fast-pagerank/blob/master/notebooks/Fast-PageRank.ipynb).
 
 
 ## Appendix
 
 ### What is Google PageRank Algorithm?
 PageRank is another link analysis algorithm primarily used to rank search engine results. It is defined as a process in which starting  from a
-random node, a random walker moves to a	random neighbour with probability $$\alpha$$  or jumps to a random vertex with the probability $$1-\alpha$$ . The PageRank values are the limiting probabilities of finding a walker on each 
-node. In the original PageRank, the jump can be to any node with a uniform probability, however later in **Personalized PageRank**, this can be any custom probability distribution over the nodes. 
+random node, a random walker moves to a	random neighbour with probability $$\alpha$$  or jumps to a random vertex with the probability $$1-\alpha$$ . The PageRank values are the limiting probabilities of finding a walker on each
+node. In the original PageRank, the jump can be to any node with a uniform probability, however later in **Personalized PageRank**, this can be any custom probability distribution over the nodes.
 
 ### How  Google PageRank is Calculated? [1, 2]
 
-Let $$\mathbf{A}$$ be the adjacency matrix ($$\mathbf{A}_{ij}$$ is the weight of the edge from node $$i$$ to node $$j$$) and $$\vec{s}$$ be the *teleporting probability*, that is $$\vec{s}_i$$ is the probability of jumping to node $$i$$. Probability of being at node $$j$$ at time $$t+1$$  can be determined by two factors: 
+Let $$\mathbf{A}$$ be the adjacency matrix ($$\mathbf{A}_{ij}$$ is the weight of the edge from node $$i$$ to node $$j$$) and $$\vec{s}$$ be the *teleporting probability*, that is $$\vec{s}_i$$ is the probability of jumping to node $$i$$. Probability of being at node $$j$$ at time $$t+1$$  can be determined by two factors:
 1. Sum over the out-neighbors $$i$$ of $$j$$ of the probability that the walk was at $$i$$ at time t, times the probability it moved from $$i$$ to $$j$$ in time $$t+1$$.
 2. Probability of teleporting from somewhere else in the graph to $$j$$.
 
@@ -47,9 +47,9 @@ $$
 $$
 
 where $$d(i)$$ is the out-degree of node $$i$$.
-To give a matrix form, we define $$\mathbf{D}$$ to be the diagonal matrix with the out-degree  of each node in $$\mathbf{A}$$ on 
+To give a matrix form, we define $$\mathbf{D}$$ to be the diagonal matrix with the out-degree  of each node in $$\mathbf{A}$$ on
 the diagonal. Then the PageRank
-vector, initialized with $$\vec{s}$$, can be obtained from the following recursion: 
+vector, initialized with $$\vec{s}$$, can be obtained from the following recursion:
 
 $$
 \begin{equation}
@@ -67,9 +67,9 @@ $$
 \mathbf{\bar{A}}&=\mathbf{A}+\mathbf{B}\\
 \mbox{where}\\
 \mathbf{B}_{ij} &= \begin{cases}
-                        \vec{s}_j & \mbox{if } r_i=0 \\ 
+                        \vec{s}_j & \mbox{if } r_i=0 \\
                         0   & \mbox{else}
-                    \end{cases} 
+                    \end{cases}
 \end{align}
 $$
 
@@ -97,7 +97,7 @@ And use a linear system solver to calculate $$\vec{pr}$$.
 
 **2. Power-Method**
 
-Basically, reiterating the Eq. $$\eqref{I}$$ until it converges. 
+Basically, reiterating the Eq. $$\eqref{I}$$ until it converges.
 
 
 ### How Fast Google PageRank Is Calculated? [3]
@@ -105,7 +105,7 @@ To speed up, we need to take advantage of sparse matrix calculations.  The only 
 
 $$
 \begin{align}
-\mathbf{\bar{A}}^T \mathbf{\bar{D}} 
+\mathbf{\bar{A}}^T \mathbf{\bar{D}}
                        &= (\mathbf{A}^T+\mathbf{B}^T)\mathbf{\bar{D}}\\
                        &= \mathbf{A}^T\mathbf{\bar{D}}^{-1}
                        +\mathbf{B}^T\mathbf{\bar{D}}^{-1}
@@ -116,7 +116,7 @@ For the first term, multiplying by this diagonal matrix scales each column and $
 
 $$
 \begin{align}
-\mathbf{\bar{A}}^T \mathbf{\bar{D}} 
+\mathbf{\bar{A}}^T \mathbf{\bar{D}}
                        &= \mathbf{A}^T\mathbf{D}^{-1}
                        +\mathbf{B}^T,
 \end{align}
@@ -153,7 +153,7 @@ Let $$\mathbf{C}$$ be $$\alpha\mathbf{B}^T+(1-\alpha)\vec{s}\vec{1}^T$$. Notice 
 $$
 \begin{align}
 \mathbf{C}_{ij} &= \begin{cases}
-                        \vec{s}_i & \mbox{if } r_j=0 \\ 
+                        \vec{s}_i & \mbox{if } r_j=0 \\
                         (1-\alpha)\vec{s}_i & \mbox{else}
                     \end{cases}  
 \end{align}
@@ -164,13 +164,13 @@ If we let $$\vec{z}$$ be:
 $$
 \begin{align}
 \vec{z}_i &= \begin{cases}
-                1 & \mbox{if } r_i=0 \\ 
+                1 & \mbox{if } r_i=0 \\
                 (1-\alpha) & \mbox{else}
              \end{cases}  
 \end{align}
 $$
 
-then 
+then
 
 $$
 \begin{equation}
@@ -229,7 +229,7 @@ $$
 
 ## References
 
-[1] [Daniel A. Spielman](https://en.wikipedia.org/wiki/Daniel_Spielman), Graphs and Networks Lecture Notes, [Lecture 11: Cutting Graphs, Personal PageRank and Spilling Paint](http://www.cs.yale.edu/homes/spielman/462/lect11-13.pdf), 2013. 
+[1] [Daniel A. Spielman](https://en.wikipedia.org/wiki/Daniel_Spielman), Graphs and Networks Lecture Notes, [Lecture 11: Cutting Graphs, Personal PageRank and Spilling Paint](http://www.cs.yale.edu/homes/spielman/462/lect11-13.pdf), 2013.
 
 [2] [Daniel A. Spielman](https://en.wikipedia.org/wiki/Daniel_Spielman), Spectral Graph Theory Lecture Notes, [Lecture 10: Random Walks on Graphs](http://www.cs.yale.edu/homes/spielman/561/lect10-18.pdf), 2018
 
@@ -556,17 +556,17 @@ if __name__ == '__main__':
     ..........
     ----------------------------------------------------------------------
     Ran 10 tests in 0.020s
-    
+
     OK
 
 
 # Benchmarking
 
-To avoid the clutter, we only visualize the fastest method from each implementation, that is: 
+To avoid the clutter, we only visualize the fastest method from each implementation, that is:
 
 - `networkx.pagerank_scipy`
 - Latest implementation of  `iGraph.personalized_pagerank` (PRPACK)
-- Our `pagerank_power` 
+- Our `pagerank_power`
 
 
 
@@ -586,7 +586,7 @@ from fast_pagerank.pagerank import pagerank
 from fast_pagerank.pagerank import pagerank_power
 
 # def print_and_flush(args):
-    
+
 #     sys.stdout.flush()
 def get_random_graph(
         min_size=20,
@@ -751,7 +751,7 @@ plt.plot(comparison_table['Edges'], comparison_table['iGraph'],
 plt.plot(comparison_table['Edges'], comparison_table['(fast) pagerank'],
          '*-', ms=8, lw=2, alpha=0.7, color='red',
          label='fast_pagerank.pagerank')
-                          
+
 plt.plot(comparison_table['Edges'], comparison_table['(fast) pagerank_power'],
          '^-', ms=8, lw=2, alpha=0.7, color='green',
          label='fast_pagerank.pagerank_power')
@@ -1304,4 +1304,3 @@ plt.show()
 
 
 ![png](Fast-PageRank_files/Fast-PageRank_9_1.png)
-
