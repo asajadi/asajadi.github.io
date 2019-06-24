@@ -1,8 +1,8 @@
 <!doctype html>
 <html lang="en">
   <head>
-    <meta charset="utf-8">
     <title>{{ page.title }}</title>
+    {% include meta.html %}
     <link rel="stylesheet" href="/css/style.css">
   </head>
   <body>
@@ -15,7 +15,7 @@
       {{ content }}
     </section>
     <footer>
-      &copy; to me
+      {% include svg-icons.html %}
     </footer>
     {% include analytics.html %}
   </body>
