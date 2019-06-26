@@ -1,4 +1,4 @@
-theme: jekyll-theme-cayman
+title: asajadi
 #
 # This file contains configuration flags to customize your site
 #
@@ -16,7 +16,9 @@ avatar: https://raw.githubusercontent.com/barryclark/jekyll-now/master/images/je
 #
 # Flags below are optional
 #
-show_downloads: true
+show_downloads: false
+
+theme: jekyll-theme-cayman
 
 
 # Includes an icon in the footer for each username you enter
