@@ -1304,4 +1304,4 @@ plt.show()
 
 
 
-![png](Fast-PageRank_files/Fast-PageRank_9_1.png)
+![png](/assets/Fast-PageRank_9_1.png)
