@@ -156,7 +156,7 @@ $$
 \mathbf{C}_{ij} &= \begin{cases}
                         \vec{s}_i & \mbox{if } r_j=0 \\
                         (1-\alpha)\vec{s}_i & \mbox{else}
-                    \end{cases}  
+                    \end{cases}
 \end{align}
 $$
 
@@ -167,7 +167,7 @@ $$
 \vec{z}_i &= \begin{cases}
                 1 & \mbox{if } r_i=0 \\
                 (1-\alpha) & \mbox{else}
-             \end{cases}  
+             \end{cases}
 \end{align}
 $$
 
@@ -183,7 +183,7 @@ So by replacing  ($$\alpha\mathbf{B}^T+(1-\alpha)\vec{s}\vec{1}^T$$) in Eq. $$\e
 
 $$
 \begin{align}
-    \vec{pr}_{t+1} &= \alpha \mathbf{A}^T\mathbf{D}^{-1}\vec{pr}_{t}+(\vec{s}\vec{z}^T)\vec{pr}_{t}. \tag{IV}\label{IV}  
+    \vec{pr}_{t+1} &= \alpha \mathbf{A}^T\mathbf{D}^{-1}\vec{pr}_{t}+(\vec{s}\vec{z}^T)\vec{pr}_{t}. \tag{IV}\label{IV}
 \end{align}
 $$
 
@@ -255,6 +255,7 @@ Google PageRank](https://www.mathworks.com/content/dam/mathworks/mathworks-dot-c
 # uncomment
 from __future__ import division
 
+import numpy as np
 import scipy as sp
 import scipy.sparse as sprs
 import scipy.spatial
@@ -291,14 +292,14 @@ def pagerank(A, p=0.85,
         A = A.T
 
     n, _ = A.shape
-    r = sp.asarray(A.sum(axis=1)).reshape(-1)
+    r = np.asarray(A.sum(axis=1)).reshape(-1)
 
     k = r.nonzero()[0]
 
     D_1 = sprs.csr_matrix((1 / r[k], (k, k)), shape=(n, n))
 
     if personalize is None:
-        personalize = sp.ones(n)
+        personalize = np.ones(n)
     personalize = personalize.reshape(n, 1)
     s = (personalize / personalize.sum()) * n
 
@@ -334,26 +335,26 @@ def pagerank_power(A, p=0.85, max_iter=100,
         A = A.T
 
     n, _ = A.shape
-    r = sp.asarray(A.sum(axis=1)).reshape(-1)
+    r = np.asarray(A.sum(axis=1)).reshape(-1)
 
     k = r.nonzero()[0]
 
     D_1 = sprs.csr_matrix((1 / r[k], (k, k)), shape=(n, n))
 
     if personalize is None:
-        personalize = sp.ones(n)
+        personalize = np.ones(n)
     personalize = personalize.reshape(n, 1)
     s = (personalize / personalize.sum()) * n
 
-    z_T = (((1 - p) * (r != 0) + (r == 0)) / n)[sp.newaxis, :]
+    z_T = (((1 - p) * (r != 0) + (r == 0)) / n)[np.newaxis, :]
     W = p * A.T @ D_1
 
-    x = s
-    oldx = sp.zeros((n, 1))
+    x = s / n
+    oldx = np.zeros((n, 1))
 
     iteration = 0
 
-    while sp.linalg.norm(x - oldx) > tol:
+    while np.linalg.norm(x - oldx) > tol:
         oldx = x
         x = W @ x + s @ (z_T @ x)
         iteration += 1
@@ -375,6 +376,7 @@ def pagerank_power(A, p=0.85, max_iter=100,
 import os
 import sys
 import scipy as sp
+import numpy as np
 import scipy.sparse as sparse
 from numpy.testing import assert_allclose
 import unittest
@@ -394,7 +396,7 @@ class TestMolerPageRank(unittest.TestCase):
     def setUp(self):
         # ---G1---
         n1 = 5
-        edges1 = sp.array([[0, 1],
+        edges1 = np.array([[0, 1],
                            [1, 2],
                            [2, 1],
                            [2, 3],
@@ -416,14 +418,14 @@ class TestMolerPageRank(unittest.TestCase):
                     0.4829]
 
         self.p1 = 0.83
-        self.personalize1 = sp.array([0.6005, 0.1221, 0.2542, 0.4778, 0.4275])
+        self.personalize1 = np.array([0.6005, 0.1221, 0.2542, 0.4778, 0.4275])
         self.G1 = sparse.csr_matrix(
             (weights1, (edges1[:, 0], edges1[:, 1])), shape=(n1, n1))
-        self.pr1 = sp.array([0.1592, 0.2114, 0.3085, 0.1, 0.2208])
+        self.pr1 = np.array([0.1592, 0.2114, 0.3085, 0.1, 0.2208])
 
         # ---G2---
         n2 = 10
-        edges2 = sp.array([[2, 4],
+        edges2 = np.array([[2, 4],
                            [2, 5],
                            [4, 5],
                            [5, 3],
@@ -445,22 +447,22 @@ class TestMolerPageRank(unittest.TestCase):
                     0.8079]
         self.G2 = sparse.csr_matrix(
             (weights2, (edges2[:, 0], edges2[:, 1])), shape=(n2, n2))
-        self.personalize2 = sp.array([0.8887, 0.6491, 0.7843, 0.7103, 0.7428,
+        self.personalize2 = np.array([0.8887, 0.6491, 0.7843, 0.7103, 0.7428,
                                       0.6632, 0.7351, 0.3006, 0.8722, 0.1652])
         self.p2 = 0.92
-        self.pr2 = sp.array([0.0234, 0.0255, 0.0629, 0.0196, 0.3303,
+        self.pr2 = np.array([0.0234, 0.0255, 0.0629, 0.0196, 0.3303,
                              0.3436, 0.0194, 0.0079, 0.023, 0.1445])
 
         # ---G3---
         n3 = 5
-        edges3 = sp.array([[2, 4]])
+        edges3 = np.array([[2, 4]])
         weights3 = [0.5441]
         self.G3 = sparse.csr_matrix(
             (weights3, (edges3[:, 0], edges3[:, 1])), shape=(n3, n3))
 
-        self.personalize3 = sp.array([0.0884, 0.2797, 0.3093, 0.5533, 0.985])
+        self.personalize3 = np.array([0.0884, 0.2797, 0.3093, 0.5533, 0.985])
         self.p3 = 0.81
-        self.pr3 = sp.array([0.0358, 0.1134, 0.1254, 0.2244, 0.501])
+        self.pr3 = np.array([0.0358, 0.1134, 0.1254, 0.2244, 0.501])
 
         # ---G4---
         n4 = 5
@@ -470,9 +472,9 @@ class TestMolerPageRank(unittest.TestCase):
         self.G4 = sparse.csr_matrix(
             (weights4, (edges4_rows, edges4_cols)), shape=(n4, n4))
 
-        self.personalize4 = sp.array([0.2534, 0.8945, 0.9562, 0.056, 0.9439])
+        self.personalize4 = np.array([0.2534, 0.8945, 0.9562, 0.056, 0.9439])
         self.p4 = 0.70
-        self.pr4 = sp.array([0.0816, 0.2882, 0.3081, 0.018, 0.3041])
+        self.pr4 = np.array([0.0816, 0.2882, 0.3081, 0.018, 0.3041])
 
         # ---G5---
         n5 = 0
@@ -482,9 +484,9 @@ class TestMolerPageRank(unittest.TestCase):
         self.G5 = sparse.csr_matrix(
             (weights5, (edges5_rows, edges5_cols)), shape=(n5, n5))
 
-        self.personalize5 = sp.array([])
+        self.personalize5 = np.array([])
         self.p5 = 0.70
-        self.pr5 = sp.array([])
+        self.pr5 = np.array([])
 
     def test_pagerank_1(self):
         calculated_pagerank = pagerank(self.G1, p=self.p1,
@@ -552,12 +554,10 @@ if __name__ == '__main__':
 !python  ../test/fast_pagerank_test.py
 ```
 
-    /Users/arminsajadi/anaconda3/lib/python3.7/site-packages/numpy/matrixlib/defmatrix.py:71: PendingDeprecationWarning: the matrix subclass is not the recommended way to represent matrices or deal with linear algebra (see https://docs.scipy.org/doc/numpy/user/numpy-for-matlab-users.html). Please adjust your code to use regular ndarray.
-      return matrix(data, dtype=dtype, copy=False)
     ..........
     ----------------------------------------------------------------------
     Ran 10 tests in 0.020s
-
+    
     OK
 
 
@@ -565,7 +565,7 @@ if __name__ == '__main__':
 
 To avoid the clutter, we only visualize the fastest method from each implementation, that is:
 
-- `networkx.pagerank_scipy`
+- `networkx.pagerank`
 - Latest implementation of  `iGraph.personalized_pagerank` (PRPACK)
 - Our `pagerank_power`
 
@@ -574,6 +574,7 @@ To avoid the clutter, we only visualize the fastest method from each implementat
 ```python
 ''' Calcualate PageRank on several random graphs.
 '''
+import numpy as np
 import scipy as sp
 import pandas as pd
 import timeit
@@ -583,8 +584,8 @@ import random
 import igraph
 import networkx as nx
 sys.path.insert(0, '..')
-from fast_pagerank.pagerank import pagerank
-from fast_pagerank.pagerank import pagerank_power
+from fast_pagerank import pagerank
+from fast_pagerank import pagerank_power
 
 # def print_and_flush(args):
 
@@ -620,12 +621,12 @@ def get_random_graph(
     p = random.uniform(min_density, max_density)
 
     A = sp.sparse.random(G_size, G_size, p, format='csr')
-    nxG = nx.from_scipy_sparse_matrix(A, create_using=nx.DiGraph())
+    nxG = nx.from_scipy_sparse_array(A, create_using=nx.DiGraph())
 
     iG = igraph.Graph(list(nxG.edges()), directed=True)
     iG.es['weight'] = A.data
 
-    personalize_vector = sp.random.random(G_size)
+    personalize_vector = np.random.random(G_size)
     personalize_dict = dict(enumerate(personalize_vector.reshape(-1)))
     return A, nxG, iG, personalize_vector, personalize_dict
 
@@ -633,14 +634,12 @@ def get_random_graph(
 n = 5
 number_of_graphs = 50
 
-node_size_vector = sp.zeros(number_of_graphs)
-edge_size_vector = sp.zeros(number_of_graphs)
-# netx_pagerank_times = sp.zeros(number_of_graphs)
-netx_pagerank_times_numpy = sp.zeros(number_of_graphs)
-netx_pagerank_times_scipy = sp.zeros(number_of_graphs)
-ig_pagerank_times = sp.zeros(number_of_graphs)
-pagerank_times = sp.zeros(number_of_graphs)
-pagerank_times_power = sp.zeros(number_of_graphs)
+node_size_vector = np.zeros(number_of_graphs)
+edge_size_vector = np.zeros(number_of_graphs)
+netx_pagerank_times = np.zeros(number_of_graphs)
+ig_pagerank_times = np.zeros(number_of_graphs)
+pagerank_times = np.zeros(number_of_graphs)
+pagerank_times_power = np.zeros(number_of_graphs)
 
 damping_factor = 0.85
 tol = 1e-3
@@ -653,18 +652,8 @@ for i in range(number_of_graphs):
     print ("Graph %d: Nodes: %d, Edges: %d ..." %(i, node_size_vector[i], edge_size_vector[i]))
     sys.stdout.flush()
 
-#     networkx.pagerank commented out, because it is too slow
-
-#     netx_pagerank_times[i] = timeit.timeit(
-#         lambda: nx.pagerank(nxG, alpha=damping_factor, tol=tol),
-#         number=n) / n
-
-    netx_pagerank_times_numpy[i] = timeit.timeit(
-        lambda: nx.pagerank_numpy(nxG, alpha=damping_factor),
-        number=n) / n
-
-    netx_pagerank_times_scipy[i] = timeit.timeit(
-        lambda: nx.pagerank_scipy(nxG, alpha=damping_factor, tol=tol),
+    netx_pagerank_times[i] = timeit.timeit(
+        lambda: nx.pagerank(nxG, alpha=damping_factor, tol=tol),
         number=n) / n
 
     #iGraph, only "prpack", which is their latest version.
@@ -690,9 +679,7 @@ argsort = edge_size_vector.argsort()
 edge_size_vector_sorted = edge_size_vector[argsort]
 node_size_vector_sorted = node_size_vector[argsort]
 
-# netx_pagerank_times_sorted = netx_pagerank_times[argsort]
-netx_pagerank_times_numpy_sorted = netx_pagerank_times_numpy[argsort]
-netx_pagerank_times_scipy_sorted = netx_pagerank_times_scipy[argsort]
+netx_pagerank_times_sorted = netx_pagerank_times[argsort]
 
 ig_pagerank_times_sorted = ig_pagerank_times[argsort]
 
@@ -701,16 +688,12 @@ pagerank_times_power_sorted = pagerank_times_power[argsort]
 
 comparison_table = pd.DataFrame(list(zip(node_size_vector_sorted,
                                          edge_size_vector_sorted,
-#                                          netx_pagerank_times_sorted,
-                                         netx_pagerank_times_numpy_sorted,
-                                         netx_pagerank_times_scipy_sorted,
+                                         netx_pagerank_times_sorted,
                                          ig_pagerank_times_sorted,
                                          pagerank_times_sorted,
                                          pagerank_times_power_sorted)),
                                 columns=['Nodes', 'Edges',
-#                                          'NetX',
-                                         'NetX (numpy)',
-                                         'NetX (scipy)',
+                                         'NetX',
                                          'iGraph',
                                          '(fast) pagerank',
                                          '(fast) pagerank_power']).\
@@ -718,6 +701,59 @@ comparison_table = pd.DataFrame(list(zip(node_size_vector_sorted,
 comparison_table.to_csv('pagerank_methods_comparison.csv')
 print("Done")
 ```
+
+    Graph 0: Nodes: 1614, Edges: 892921 ...
+    Graph 1: Nodes: 1291, Edges: 397622 ...
+    Graph 2: Nodes: 838, Edges: 132426 ...
+    Graph 3: Nodes: 673, Edges: 199501 ...
+    Graph 4: Nodes: 429, Edges: 27151 ...
+    Graph 5: Nodes: 1454, Edges: 825369 ...
+    Graph 6: Nodes: 1635, Edges: 579105 ...
+    Graph 7: Nodes: 141, Edges: 3475 ...
+    Graph 8: Nodes: 706, Edges: 206913 ...
+    Graph 9: Nodes: 751, Edges: 137461 ...
+    Graph 10: Nodes: 1641, Edges: 1195768 ...
+    Graph 11: Nodes: 1413, Edges: 842877 ...
+    Graph 12: Nodes: 1042, Edges: 419973 ...
+    Graph 13: Nodes: 1681, Edges: 282626 ...
+    Graph 14: Nodes: 1089, Edges: 584362 ...
+    Graph 15: Nodes: 1260, Edges: 498237 ...
+    Graph 16: Nodes: 1736, Edges: 1412119 ...
+    Graph 17: Nodes: 1406, Edges: 310850 ...
+    Graph 18: Nodes: 240, Edges: 17255 ...
+    Graph 19: Nodes: 1176, Edges: 368369 ...
+    Graph 20: Nodes: 1083, Edges: 420160 ...
+    Graph 21: Nodes: 1933, Edges: 956007 ...
+    Graph 22: Nodes: 841, Edges: 145601 ...
+    Graph 23: Nodes: 905, Edges: 127398 ...
+    Graph 24: Nodes: 858, Edges: 247544 ...
+    Graph 25: Nodes: 1989, Edges: 1581139 ...
+    Graph 26: Nodes: 869, Edges: 228061 ...
+    Graph 27: Nodes: 773, Edges: 164815 ...
+    Graph 28: Nodes: 607, Edges: 156039 ...
+    Graph 29: Nodes: 1840, Edges: 855672 ...
+    Graph 30: Nodes: 349, Edges: 49752 ...
+    Graph 31: Nodes: 1722, Edges: 391689 ...
+    Graph 32: Nodes: 615, Edges: 170985 ...
+    Graph 33: Nodes: 181, Edges: 13687 ...
+    Graph 34: Nodes: 1060, Edges: 510199 ...
+    Graph 35: Nodes: 956, Edges: 372646 ...
+    Graph 36: Nodes: 1784, Edges: 628763 ...
+    Graph 37: Nodes: 338, Edges: 32353 ...
+    Graph 38: Nodes: 664, Edges: 120154 ...
+    Graph 39: Nodes: 888, Edges: 179415 ...
+    Graph 40: Nodes: 606, Edges: 173639 ...
+    Graph 41: Nodes: 168, Edges: 8709 ...
+    Graph 42: Nodes: 159, Edges: 11571 ...
+    Graph 43: Nodes: 369, Edges: 67840 ...
+    Graph 44: Nodes: 1572, Edges: 672553 ...
+    Graph 45: Nodes: 593, Edges: 50826 ...
+    Graph 46: Nodes: 603, Edges: 130738 ...
+    Graph 47: Nodes: 924, Edges: 152257 ...
+    Graph 48: Nodes: 923, Edges: 232844 ...
+    Graph 49: Nodes: 532, Edges: 75687 ...
+    Done
+
 
 # Plotting
 
@@ -734,16 +770,9 @@ plt.ioff()
 fig=plt.figure(num=None, figsize=(10, 10), dpi=80, facecolor='w', edgecolor='k')
 
 
-# plt.plot(comparison_table['Edges'], comparison_table['NetX'],
-#          'o-', ms=8, lw=2, alpha=0.7, color='cyan',
-#          label='networkx.PageRank')
-plt.plot(comparison_table['Edges'], comparison_table['NetX (numpy)'],
-         'v-', ms=8, lw=2, alpha=0.7, color='magenta',
-         label='networkx.PageRank_numpy')
-
-plt.plot(comparison_table['Edges'], comparison_table['NetX (scipy)'],
-         'P-', ms=8, lw=2, alpha=0.7, color='blue',
-         label='networkx.PageRank_scipy')
+plt.plot(comparison_table['Edges'], comparison_table['NetX'],
+         'o-', ms=8, lw=2, alpha=0.7, color='cyan',
+         label='networkx.PageRank')
 
 plt.plot(comparison_table['Edges'], comparison_table['iGraph'],
          'x-', ms=8, lw=2, alpha=0.7, color='black',
@@ -790,8 +819,7 @@ plt.show()
       <th></th>
       <th>Nodes</th>
       <th>Edges</th>
-      <th>NetX (numpy)</th>
-      <th>NetX (scipy)</th>
+      <th>NetX</th>
       <th>iGraph</th>
       <th>(fast) pagerank</th>
       <th>(fast) pagerank_power</th>
@@ -800,503 +828,453 @@ plt.show()
   <tbody>
     <tr>
       <th>0</th>
-      <td>29</td>
-      <td>294</td>
-      <td>0.001380</td>
-      <td>0.002786</td>
-      <td>0.000064</td>
-      <td>0.001197</td>
-      <td>0.000987</td>
+      <td>141</td>
+      <td>3475</td>
+      <td>0.008167</td>
+      <td>0.000539</td>
+      <td>0.001923</td>
+      <td>0.000849</td>
     </tr>
     <tr>
       <th>1</th>
-      <td>50</td>
-      <td>297</td>
-      <td>0.002001</td>
-      <td>0.002855</td>
-      <td>0.000116</td>
-      <td>0.001359</td>
-      <td>0.001350</td>
+      <td>168</td>
+      <td>8709</td>
+      <td>0.020619</td>
+      <td>0.001263</td>
+      <td>0.002540</td>
+      <td>0.000976</td>
     </tr>
     <tr>
       <th>2</th>
-      <td>57</td>
-      <td>511</td>
-      <td>0.003088</td>
-      <td>0.004122</td>
-      <td>0.000207</td>
-      <td>0.001339</td>
-      <td>0.001040</td>
+      <td>159</td>
+      <td>11571</td>
+      <td>0.024342</td>
+      <td>0.001638</td>
+      <td>0.002263</td>
+      <td>0.000924</td>
     </tr>
     <tr>
       <th>3</th>
-      <td>56</td>
-      <td>1268</td>
-      <td>0.005002</td>
-      <td>0.008682</td>
-      <td>0.000302</td>
-      <td>0.001361</td>
-      <td>0.000923</td>
+      <td>181</td>
+      <td>13687</td>
+      <td>0.026383</td>
+      <td>0.001721</td>
+      <td>0.002278</td>
+      <td>0.000875</td>
     </tr>
     <tr>
       <th>4</th>
-      <td>153</td>
-      <td>4239</td>
-      <td>0.025173</td>
-      <td>0.026826</td>
-      <td>0.001618</td>
-      <td>0.002090</td>
-      <td>0.001170</td>
+      <td>240</td>
+      <td>17255</td>
+      <td>0.031868</td>
+      <td>0.002163</td>
+      <td>0.006060</td>
+      <td>0.001765</td>
     </tr>
     <tr>
       <th>5</th>
-      <td>161</td>
-      <td>7313</td>
-      <td>0.034990</td>
-      <td>0.045815</td>
-      <td>0.002600</td>
-      <td>0.002153</td>
-      <td>0.001118</td>
+      <td>429</td>
+      <td>27151</td>
+      <td>0.046971</td>
+      <td>0.003327</td>
+      <td>0.018867</td>
+      <td>0.002158</td>
     </tr>
     <tr>
       <th>6</th>
-      <td>194</td>
-      <td>13112</td>
-      <td>0.059986</td>
-      <td>0.079006</td>
-      <td>0.004251</td>
-      <td>0.002485</td>
-      <td>0.001197</td>
+      <td>338</td>
+      <td>32353</td>
+      <td>0.062241</td>
+      <td>0.004158</td>
+      <td>0.012208</td>
+      <td>0.002291</td>
     </tr>
     <tr>
       <th>7</th>
-      <td>235</td>
-      <td>23995</td>
-      <td>0.100380</td>
-      <td>0.144351</td>
-      <td>0.007696</td>
-      <td>0.003906</td>
-      <td>0.001367</td>
+      <td>349</td>
+      <td>49752</td>
+      <td>0.091428</td>
+      <td>0.006546</td>
+      <td>0.020979</td>
+      <td>0.002568</td>
     </tr>
     <tr>
       <th>8</th>
-      <td>399</td>
-      <td>24620</td>
-      <td>0.152208</td>
-      <td>0.147999</td>
-      <td>0.008201</td>
-      <td>0.009624</td>
-      <td>0.001632</td>
+      <td>593</td>
+      <td>50826</td>
+      <td>0.094839</td>
+      <td>0.004848</td>
+      <td>0.053456</td>
+      <td>0.003128</td>
     </tr>
     <tr>
       <th>9</th>
-      <td>331</td>
-      <td>28117</td>
-      <td>0.138913</td>
-      <td>0.167950</td>
-      <td>0.009146</td>
-      <td>0.006118</td>
-      <td>0.001569</td>
+      <td>369</td>
+      <td>67840</td>
+      <td>0.129616</td>
+      <td>0.009707</td>
+      <td>0.015578</td>
+      <td>0.003154</td>
     </tr>
     <tr>
       <th>10</th>
-      <td>400</td>
-      <td>31555</td>
-      <td>0.170775</td>
-      <td>0.189163</td>
-      <td>0.010441</td>
-      <td>0.009061</td>
-      <td>0.001658</td>
+      <td>532</td>
+      <td>75687</td>
+      <td>0.153020</td>
+      <td>0.007637</td>
+      <td>0.036882</td>
+      <td>0.003722</td>
     </tr>
     <tr>
       <th>11</th>
-      <td>432</td>
-      <td>34350</td>
-      <td>0.193550</td>
-      <td>0.206139</td>
-      <td>0.011067</td>
-      <td>0.010935</td>
-      <td>0.002538</td>
+      <td>664</td>
+      <td>120154</td>
+      <td>0.230722</td>
+      <td>0.012611</td>
+      <td>0.064293</td>
+      <td>0.004689</td>
     </tr>
     <tr>
       <th>12</th>
-      <td>327</td>
-      <td>40070</td>
-      <td>0.172449</td>
-      <td>0.236692</td>
-      <td>0.013152</td>
-      <td>0.006070</td>
-      <td>0.001624</td>
+      <td>905</td>
+      <td>127398</td>
+      <td>0.243970</td>
+      <td>0.015039</td>
+      <td>0.184043</td>
+      <td>0.005806</td>
     </tr>
     <tr>
       <th>13</th>
-      <td>345</td>
-      <td>43278</td>
-      <td>0.185561</td>
-      <td>0.257730</td>
-      <td>0.013519</td>
-      <td>0.006637</td>
-      <td>0.001671</td>
+      <td>603</td>
+      <td>130738</td>
+      <td>0.264537</td>
+      <td>0.013170</td>
+      <td>0.045426</td>
+      <td>0.004366</td>
     </tr>
     <tr>
       <th>14</th>
-      <td>372</td>
-      <td>51392</td>
-      <td>0.217195</td>
-      <td>0.306374</td>
-      <td>0.016442</td>
-      <td>0.007388</td>
-      <td>0.001801</td>
+      <td>838</td>
+      <td>132426</td>
+      <td>0.248668</td>
+      <td>0.020659</td>
+      <td>0.163919</td>
+      <td>0.004816</td>
     </tr>
     <tr>
       <th>15</th>
-      <td>443</td>
-      <td>53407</td>
-      <td>0.257006</td>
-      <td>0.318984</td>
-      <td>0.016917</td>
-      <td>0.010931</td>
-      <td>0.001912</td>
+      <td>751</td>
+      <td>137461</td>
+      <td>0.267247</td>
+      <td>0.013927</td>
+      <td>0.076969</td>
+      <td>0.004700</td>
     </tr>
     <tr>
       <th>16</th>
-      <td>513</td>
-      <td>53818</td>
-      <td>0.332424</td>
-      <td>0.322413</td>
-      <td>0.017470</td>
-      <td>0.017187</td>
-      <td>0.002074</td>
+      <td>841</td>
+      <td>145601</td>
+      <td>0.275542</td>
+      <td>0.013754</td>
+      <td>0.099576</td>
+      <td>0.004973</td>
     </tr>
     <tr>
       <th>17</th>
-      <td>657</td>
-      <td>58504</td>
-      <td>0.431417</td>
-      <td>0.349819</td>
-      <td>0.019168</td>
-      <td>0.029765</td>
-      <td>0.002254</td>
+      <td>924</td>
+      <td>152257</td>
+      <td>0.296603</td>
+      <td>0.015513</td>
+      <td>0.137361</td>
+      <td>0.005365</td>
     </tr>
     <tr>
       <th>18</th>
-      <td>600</td>
-      <td>66924</td>
-      <td>0.424966</td>
-      <td>0.427820</td>
-      <td>0.021523</td>
-      <td>0.022974</td>
-      <td>0.002296</td>
+      <td>607</td>
+      <td>156039</td>
+      <td>0.295475</td>
+      <td>0.014830</td>
+      <td>0.053392</td>
+      <td>0.005314</td>
     </tr>
     <tr>
       <th>19</th>
-      <td>708</td>
-      <td>68816</td>
-      <td>0.493887</td>
-      <td>0.412282</td>
-      <td>0.023177</td>
-      <td>0.035180</td>
-      <td>0.002426</td>
+      <td>773</td>
+      <td>164815</td>
+      <td>0.320011</td>
+      <td>0.014407</td>
+      <td>0.078800</td>
+      <td>0.005080</td>
     </tr>
     <tr>
       <th>20</th>
-      <td>595</td>
-      <td>70160</td>
-      <td>0.447111</td>
-      <td>0.421269</td>
-      <td>0.022601</td>
-      <td>0.021008</td>
-      <td>0.002358</td>
+      <td>615</td>
+      <td>170985</td>
+      <td>0.324415</td>
+      <td>0.014716</td>
+      <td>0.048411</td>
+      <td>0.005089</td>
     </tr>
     <tr>
       <th>21</th>
-      <td>402</td>
-      <td>72749</td>
-      <td>0.286772</td>
-      <td>0.432235</td>
-      <td>0.022592</td>
-      <td>0.009006</td>
-      <td>0.002071</td>
+      <td>606</td>
+      <td>173639</td>
+      <td>0.329282</td>
+      <td>0.017196</td>
+      <td>0.047157</td>
+      <td>0.005871</td>
     </tr>
     <tr>
       <th>22</th>
-      <td>527</td>
-      <td>103922</td>
-      <td>0.487291</td>
-      <td>0.621258</td>
-      <td>0.032654</td>
-      <td>0.015822</td>
-      <td>0.002414</td>
+      <td>888</td>
+      <td>179415</td>
+      <td>0.349202</td>
+      <td>0.017302</td>
+      <td>0.122838</td>
+      <td>0.006556</td>
     </tr>
     <tr>
       <th>23</th>
-      <td>552</td>
-      <td>113892</td>
-      <td>0.511531</td>
-      <td>0.682059</td>
-      <td>0.035800</td>
-      <td>0.018713</td>
-      <td>0.002606</td>
+      <td>673</td>
+      <td>199501</td>
+      <td>0.355692</td>
+      <td>0.019995</td>
+      <td>0.075585</td>
+      <td>0.005577</td>
     </tr>
     <tr>
       <th>24</th>
-      <td>643</td>
-      <td>121678</td>
-      <td>0.608551</td>
-      <td>0.733741</td>
-      <td>0.038143</td>
-      <td>0.025314</td>
-      <td>0.003068</td>
+      <td>706</td>
+      <td>206913</td>
+      <td>0.405331</td>
+      <td>0.020133</td>
+      <td>0.068514</td>
+      <td>0.005883</td>
     </tr>
     <tr>
       <th>25</th>
-      <td>535</td>
-      <td>131004</td>
-      <td>0.548765</td>
-      <td>0.780345</td>
-      <td>0.041276</td>
-      <td>0.017120</td>
-      <td>0.002782</td>
+      <td>869</td>
+      <td>228061</td>
+      <td>0.466303</td>
+      <td>0.020160</td>
+      <td>0.161987</td>
+      <td>0.008556</td>
     </tr>
     <tr>
       <th>26</th>
-      <td>788</td>
-      <td>134715</td>
-      <td>0.738787</td>
-      <td>0.805370</td>
-      <td>0.043985</td>
-      <td>0.040695</td>
-      <td>0.002948</td>
+      <td>923</td>
+      <td>232844</td>
+      <td>0.464954</td>
+      <td>0.025322</td>
+      <td>0.170835</td>
+      <td>0.008981</td>
     </tr>
     <tr>
       <th>27</th>
-      <td>659</td>
-      <td>139356</td>
-      <td>0.655564</td>
-      <td>0.832847</td>
-      <td>0.044811</td>
-      <td>0.027062</td>
-      <td>0.002884</td>
+      <td>858</td>
+      <td>247544</td>
+      <td>0.498882</td>
+      <td>0.028198</td>
+      <td>0.130814</td>
+      <td>0.007992</td>
     </tr>
     <tr>
       <th>28</th>
-      <td>574</td>
-      <td>142418</td>
-      <td>0.614663</td>
-      <td>0.851331</td>
-      <td>0.044907</td>
-      <td>0.019513</td>
-      <td>0.002872</td>
+      <td>1681</td>
+      <td>282626</td>
+      <td>0.530677</td>
+      <td>0.027410</td>
+      <td>0.695906</td>
+      <td>0.008940</td>
     </tr>
     <tr>
       <th>29</th>
-      <td>671</td>
-      <td>211463</td>
-      <td>0.860593</td>
-      <td>1.270099</td>
-      <td>0.066796</td>
-      <td>0.028440</td>
-      <td>0.003524</td>
+      <td>1406</td>
+      <td>310850</td>
+      <td>0.550259</td>
+      <td>0.028906</td>
+      <td>0.428251</td>
+      <td>0.009485</td>
     </tr>
     <tr>
       <th>30</th>
-      <td>991</td>
-      <td>217314</td>
-      <td>1.195324</td>
-      <td>1.296652</td>
-      <td>0.069362</td>
-      <td>0.074023</td>
-      <td>0.003918</td>
+      <td>1176</td>
+      <td>368369</td>
+      <td>0.715257</td>
+      <td>0.044657</td>
+      <td>0.396467</td>
+      <td>0.017334</td>
     </tr>
     <tr>
       <th>31</th>
-      <td>1145</td>
-      <td>224636</td>
-      <td>1.376988</td>
-      <td>1.351827</td>
-      <td>0.072020</td>
-      <td>0.115271</td>
-      <td>0.004329</td>
+      <td>956</td>
+      <td>372646</td>
+      <td>0.737979</td>
+      <td>0.031602</td>
+      <td>0.136079</td>
+      <td>0.009442</td>
     </tr>
     <tr>
       <th>32</th>
-      <td>814</td>
-      <td>240810</td>
-      <td>1.044791</td>
-      <td>1.447768</td>
-      <td>0.076709</td>
-      <td>0.044440</td>
-      <td>0.004033</td>
+      <td>1722</td>
+      <td>391689</td>
+      <td>0.763951</td>
+      <td>0.047625</td>
+      <td>0.849482</td>
+      <td>0.015669</td>
     </tr>
     <tr>
       <th>33</th>
-      <td>946</td>
-      <td>329445</td>
-      <td>1.435774</td>
-      <td>1.980942</td>
-      <td>0.108792</td>
-      <td>0.063489</td>
-      <td>0.004937</td>
+      <td>1291</td>
+      <td>397622</td>
+      <td>0.704370</td>
+      <td>0.034768</td>
+      <td>0.311621</td>
+      <td>0.009304</td>
     </tr>
     <tr>
       <th>34</th>
-      <td>876</td>
-      <td>368149</td>
-      <td>1.467089</td>
-      <td>2.206095</td>
-      <td>0.122426</td>
-      <td>0.054545</td>
-      <td>0.005101</td>
+      <td>1042</td>
+      <td>419973</td>
+      <td>0.768082</td>
+      <td>0.043818</td>
+      <td>0.184774</td>
+      <td>0.011507</td>
     </tr>
     <tr>
       <th>35</th>
-      <td>1226</td>
-      <td>382630</td>
-      <td>1.951984</td>
-      <td>2.299428</td>
-      <td>0.128249</td>
-      <td>0.125456</td>
-      <td>0.005811</td>
+      <td>1083</td>
+      <td>420160</td>
+      <td>1.006566</td>
+      <td>0.158505</td>
+      <td>1.352094</td>
+      <td>0.011576</td>
     </tr>
     <tr>
       <th>36</th>
-      <td>1082</td>
-      <td>414322</td>
-      <td>1.791635</td>
-      <td>2.493037</td>
-      <td>0.140365</td>
-      <td>0.093733</td>
-      <td>0.005861</td>
+      <td>1260</td>
+      <td>498237</td>
+      <td>1.011772</td>
+      <td>0.059739</td>
+      <td>0.368076</td>
+      <td>0.011779</td>
     </tr>
     <tr>
       <th>37</th>
-      <td>1200</td>
-      <td>463903</td>
-      <td>2.105691</td>
-      <td>2.787735</td>
-      <td>0.158396</td>
-      <td>0.122534</td>
-      <td>0.007137</td>
+      <td>1060</td>
+      <td>510199</td>
+      <td>1.140068</td>
+      <td>0.059229</td>
+      <td>0.237280</td>
+      <td>0.019025</td>
     </tr>
     <tr>
       <th>38</th>
-      <td>1664</td>
-      <td>482849</td>
-      <td>3.057695</td>
-      <td>2.898690</td>
-      <td>0.166557</td>
-      <td>0.295168</td>
-      <td>0.008168</td>
+      <td>1635</td>
+      <td>579105</td>
+      <td>1.137819</td>
+      <td>0.061414</td>
+      <td>0.767978</td>
+      <td>0.013246</td>
     </tr>
     <tr>
       <th>39</th>
-      <td>1502</td>
-      <td>488347</td>
-      <td>2.682661</td>
-      <td>2.949617</td>
-      <td>0.168611</td>
-      <td>0.227022</td>
-      <td>0.007144</td>
+      <td>1089</td>
+      <td>584362</td>
+      <td>1.037787</td>
+      <td>0.074236</td>
+      <td>0.254159</td>
+      <td>0.012441</td>
     </tr>
     <tr>
       <th>40</th>
-      <td>1440</td>
-      <td>621314</td>
-      <td>2.905153</td>
-      <td>3.730029</td>
-      <td>0.219487</td>
-      <td>0.196364</td>
-      <td>0.008039</td>
+      <td>1784</td>
+      <td>628763</td>
+      <td>1.427946</td>
+      <td>0.058649</td>
+      <td>0.877097</td>
+      <td>0.015091</td>
     </tr>
     <tr>
       <th>41</th>
-      <td>1671</td>
-      <td>629123</td>
-      <td>3.468734</td>
-      <td>3.764259</td>
-      <td>0.223085</td>
-      <td>0.310846</td>
-      <td>0.008445</td>
+      <td>1572</td>
+      <td>672553</td>
+      <td>1.295139</td>
+      <td>0.056538</td>
+      <td>0.638620</td>
+      <td>0.015338</td>
     </tr>
     <tr>
       <th>42</th>
-      <td>1476</td>
-      <td>800797</td>
-      <td>3.515316</td>
-      <td>4.820850</td>
-      <td>0.298863</td>
-      <td>0.221590</td>
-      <td>0.009985</td>
+      <td>1454</td>
+      <td>825369</td>
+      <td>1.507927</td>
+      <td>0.107227</td>
+      <td>0.405008</td>
+      <td>0.014615</td>
     </tr>
     <tr>
       <th>43</th>
-      <td>1567</td>
-      <td>858346</td>
-      <td>3.868013</td>
-      <td>5.151185</td>
-      <td>0.319868</td>
-      <td>0.276208</td>
-      <td>0.010889</td>
+      <td>1413</td>
+      <td>842877</td>
+      <td>1.624581</td>
+      <td>0.111469</td>
+      <td>0.444221</td>
+      <td>0.015862</td>
     </tr>
     <tr>
       <th>44</th>
-      <td>1442</td>
-      <td>920573</td>
-      <td>3.741552</td>
-      <td>5.525220</td>
-      <td>0.349847</td>
-      <td>0.202256</td>
-      <td>0.010942</td>
+      <td>1840</td>
+      <td>855672</td>
+      <td>1.623843</td>
+      <td>0.075287</td>
+      <td>0.838486</td>
+      <td>0.016817</td>
     </tr>
     <tr>
       <th>45</th>
-      <td>1773</td>
-      <td>1039771</td>
-      <td>4.812556</td>
-      <td>6.241451</td>
-      <td>0.396200</td>
-      <td>0.327685</td>
-      <td>0.013697</td>
+      <td>1614</td>
+      <td>892921</td>
+      <td>1.710065</td>
+      <td>0.133828</td>
+      <td>0.627106</td>
+      <td>0.015474</td>
     </tr>
     <tr>
       <th>46</th>
-      <td>1845</td>
-      <td>1089758</td>
-      <td>5.186088</td>
-      <td>6.565350</td>
-      <td>0.413339</td>
-      <td>0.391772</td>
-      <td>0.013254</td>
+      <td>1933</td>
+      <td>956007</td>
+      <td>2.507147</td>
+      <td>0.119857</td>
+      <td>1.135223</td>
+      <td>0.016590</td>
     </tr>
     <tr>
       <th>47</th>
-      <td>1995</td>
-      <td>1368626</td>
-      <td>6.392365</td>
-      <td>8.204485</td>
-      <td>0.535340</td>
-      <td>0.461299</td>
-      <td>0.016423</td>
+      <td>1641</td>
+      <td>1195768</td>
+      <td>2.196352</td>
+      <td>0.172022</td>
+      <td>0.535405</td>
+      <td>0.019178</td>
     </tr>
     <tr>
       <th>48</th>
-      <td>1748</td>
-      <td>1489884</td>
-      <td>6.044785</td>
-      <td>8.972130</td>
-      <td>0.608673</td>
-      <td>0.353495</td>
-      <td>0.016298</td>
+      <td>1736</td>
+      <td>1412119</td>
+      <td>2.638824</td>
+      <td>0.192373</td>
+      <td>0.674815</td>
+      <td>0.021137</td>
     </tr>
     <tr>
       <th>49</th>
-      <td>1996</td>
-      <td>1552304</td>
-      <td>6.911417</td>
-      <td>9.262027</td>
-      <td>0.613982</td>
-      <td>0.475427</td>
-      <td>0.018804</td>
+      <td>1989</td>
+      <td>1581139</td>
+      <td>3.274551</td>
+      <td>0.256537</td>
+      <td>1.405950</td>
+      <td>0.020392</td>
     </tr>
   </tbody>
 </table>
